@@ -1,0 +1,8 @@
+ebin
+.DS_Store
+.eunit
+
+## emacs stuff
+src/#*
+src/.#*
+src/*~
