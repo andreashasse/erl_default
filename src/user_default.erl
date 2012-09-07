@@ -21,6 +21,9 @@
 %% call
 -export([cl/3]).
 
+%% doc
+-export([src/3]).
+
 
 %%%
 %%% See:
@@ -100,3 +103,9 @@ lm() -> user_load:lm().
 
 cl(M,F,A) ->
     user_call:cl(M,F,A).
+
+
+%% ---------------------------------------------------------------------------
+%% Doc
+src(M,F,A) ->
+    shell_doc:print_mfa(M,F,A).
