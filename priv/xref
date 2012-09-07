@@ -1,0 +1,135 @@
+#!/usr/bin/env escript
+%% -*- erlang -*-
+
+-define(HALT_ERROR, 1).
+-define(HALT_OK, 0).
+
+main([]) ->
+    {ok, RebarConf} = file:consult("rebar.config"),
+    DepsNames =
+        lists:map(fun(T) when is_tuple(T) -> element(1, T);
+                     (A) when is_atom(A) -> A
+                  end,
+                  proplists:get_value(deps, RebarConf, [])),
+    DepsDir = proplists:get_value(deps_dir, RebarConf, "deps"),
+    lists:foreach(
+      fun(Dep) -> code:add_path(filename:join(DepsDir, Dep)) end,
+      DepsNames),
+    do(["ebin"]).
+
+do(Dirs) ->
+    xref:start(?MODULE),
+    try
+        setup(Dirs),
+        RC = analyse(),
+        erlang:halt(RC)
+    catch E:R ->
+            xref:stop(?MODULE),
+            io:format("Error ~p, Reason ~p~nStack ~p",
+                      [E, R, erlang:get_stacktrace()]),
+            erlang:halt(?HALT_ERROR)
+    end.
+
+setup(Dirs) ->
+    io:format("Dirs ~p", [Dirs]),
+    xref:set_library_path(?MODULE, code:get_path()),
+    [xref:add_directory(?MODULE, Dir) || Dir <- Dirs].
+
+analyse() ->
+    Ignores = lists:append([ignores(Mod)
+                            || {Mod, _} <- xref:info(?MODULE, modules)]),
+    Res =
+        lists:zf(
+          fun(Analyse) -> do_analyse(Analyse, Ignores) end,
+          analysis()),
+    if Res =/= [] ->
+            io:format("Ignoring modules~n~p~n", [ignore_modules()]),
+            [io:format("~s~n", [R]) || R <- Res],
+            ?HALT_ERROR;
+       true ->
+            ?HALT_OK
+    end.
+
+do_analyse(Analyse, Ignores) ->
+    {ok, Result0} = xref:analyse(?MODULE, Analyse),
+    Result = [Res || Res <- Result0,
+                     filter_ignores(Res, Ignores),
+                     filter_ignore_modules(Res)],
+    out_if_res(Analyse, Result).
+
+out_if_res(_Analyse, []) -> false;
+out_if_res(Analyse, Result) ->
+    {true, io_lib:format("Errors in ~p:~n~s", [Analyse, pp_result(Result)])}.
+
+pp_result(List) when is_list(List) -> [[pp_result(Item), "\n"] || Item <- List];
+pp_result({MFA1, MFA2}) -> [pp_mfa(MFA1), " -> ", pp_mfa(MFA2)];
+pp_result(MFA) -> pp_mfa(MFA).
+
+pp_mfa({M,F,A}) ->
+    [atom_to_list(M),":", atom_to_list(F),"/", integer_to_list(A)].
+
+analysis() ->
+    [undefined_function_calls, undefined_functions,
+     locals_not_used,
+     deprecated_function_calls].
+
+ignores(M) ->
+    Attrs     = mks(attributes, M:module_info()),
+    Ignore    = mks(ignore_xref, Attrs),
+    Callbacks = [callbacks(B, maybe_callbacks) ++ callbacks(B, callbacks) ++
+                     case B of
+                         gen_server ->
+                             [{start_link, '*'}, {start, '*'}, {stop, '*'}];
+                         application ->
+                             [{start, '*'}, {stop, '*'}];
+                         _ -> []
+                     end ||
+                    B <- mks(behaviour, Attrs)],
+    [{M, F, A} || {F, A} <- Ignore ++ lists:flatten(Callbacks)].
+
+mks(Key, List) ->
+    lists:flatten([Value || {K, Value} <- List, K == Key]).
+
+filter_ignores({MFA1, MFA2}, Ignores) ->
+    filter_ignores(MFA1, Ignores) andalso filter_ignores(MFA2, Ignores);
+filter_ignores({M, F, A} = MFA, Ignores)
+  when is_atom(M), is_atom(F), is_integer(A) ->
+    IgnoreMatch = lists:any(fun(Ignore) -> mfa_match(MFA, Ignore) end, Ignores),
+    not (IgnoreMatch orelse is_eunit(F, A)).
+
+mfa_match({M,F,A}, {PM, PF, PA}) ->
+    match(M, PM) andalso match(F, PF) andalso match(A, PA).
+
+match(_M, '*') -> true;
+match(M, PM) -> M =:= PM.
+
+is_eunit(test, 0) -> true;
+is_eunit(F, 0) ->
+    case lists:reverse(atom_to_list(F)) of
+        "tset_"  ++ _ -> true;
+        "_tset_" ++ _ -> true;
+        _ -> false
+    end;
+is_eunit(_F, _A) -> false.
+
+filter_ignore_modules({MFA1, MFA2}) ->
+    filter_ignore_modules(MFA1) andalso filter_ignore_modules(MFA2);
+filter_ignore_modules({M, _F, _A}) ->
+    not lists:member(M, ignore_modules()).
+
+callbacks(B, Type) ->
+    try B:behaviour_info(Type) of
+        undefined -> [];
+        L when is_list(L) -> L
+    catch
+        error:undef ->
+            [];
+        error:function_clause ->
+            []
+    end.
+
+ignore_modules() ->
+    [erlang, init, %% weird
+     user_default %% manually called
+    ].
+
