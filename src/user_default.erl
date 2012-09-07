@@ -8,7 +8,7 @@
 -export([pid/1,pid/2]).
 
 %% info
--export([i/0, i/1, i/2, i/3, ni/0, ci/0, ci/3, cni/0, bt/1, bt/3]).
+-export([i/0, i/1, ni/0, bt/1]).
 -export([pi/0, pi/1, pi/2, pi2/0]).
 
 %% compile
@@ -33,6 +33,8 @@ help() ->
 
 help_text() ->
     "** user extended commands **\n"
+        "i()           -- short version of c:i()\n"
+        "ni()          -- i/0 on all connected nodes\n"
         "lm()          -- load all changed modules\n"
         "cl(M,F,A)     -- call unexported function\n"
         "nl()          -- load all changed modules on all known nodes\n"
@@ -52,18 +54,13 @@ p(Term) ->
 
 %% ---------------------------------------------------------------------------
 %% Info
+
 i() -> user_info:i().
 i(Pid) -> user_info:i(Pid).
-i(X,Y) -> user_info:i(X,Y).
-i(X,Y,Z) -> user_info:i(X,Y,Z).
 
 ni() -> user_info:ni().
-ci() -> user_info:ci().
-ci(X,Y,Z) -> user_info:ci(X,Y,Z).
-cni() -> user_info:cni().
 
 bt(Pid)  -> user_info:bt(Pid).
-bt(X,Y,Z) -> user_info:bt(X,Y,Z).
 
 pi() -> user_info:pi().
 pi(Id) -> user_info:pi(Id).

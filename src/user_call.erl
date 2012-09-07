@@ -18,8 +18,6 @@ cl(M,F,A) ->
       try_fun(M,F,[A])
   end.
 
-
-
 try_fun(M,F,Args)->
   export(M,F,length(Args)),
   R = apply(M,'APPLY',Args),

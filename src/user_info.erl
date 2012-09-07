@@ -1,6 +1,6 @@
 -module(user_info).
 
--export([i/0, i/1, i/2, i/3, ni/0, ci/0, ci/3, cni/0, bt/1, bt/3]).
+-export([i/0, i/1, ni/0, bt/1]).
 -export([pi/0, pi/1, pi/2, pi2/0]).
 
 
@@ -9,8 +9,6 @@ i() -> i1(processes()).
 ni() -> i1(all_procs()).
 
 
-i(X,Y,Z) -> i({X,Y,Z}).
-i(X,Y) -> i({X,Y}).
 i(X) ->
   case user_default:pid(X) of
     P when is_pid(P) -> pinfo(P);
@@ -25,18 +23,6 @@ i(X) ->
 %%     end.
 
 %%i(X,Y,Z) -> pinfo(c:pid(X,Y,Z)).
-
-
-%% If you like the new one
-ci() ->
-    c:i().
-
-ci(X,Y,Z) ->
-    c:i(X,Y,Z).
-
-cni() ->
-    c:ni().
-
 
 %% Code moified from c.erl
 i1(Ps) ->
@@ -73,19 +59,19 @@ pzombie(Pid) ->
     end.
 
 pinfo(Pid) ->
-  N = node(Pid),
-  case
-    case N =:= node() of
-        true -> [];
-        false-> [{node,N}]
-       end ++
-    case rpc:call(N,erlang,process_info,[Pid]) of
-      L when is_list(L) -> L;
-      _ -> []
-    end of
-    [] -> [];
-    I -> [{pid,Pid}|I]
-  end.
+    N = node(Pid),
+    case
+        case N =:= node() of
+            true -> [];
+            false-> [{node,N}]
+        end ++
+        case rpc:call(N,erlang,process_info,[Pid]) of
+            L when is_list(L) -> L;
+            _ -> []
+        end of
+        [] -> [];
+        I -> [{pid,Pid}|I]
+    end.
 
 pinfo(Pid, Item) ->
     case is_alive() of
@@ -249,7 +235,3 @@ bt(Name) when is_atom(Name) ->
         undefined -> undefined;
         Pid -> bt(Pid)
     end.
-
-
-bt(X,Y,Z) ->
-    bt(c:pid(X,Y,Z)).
