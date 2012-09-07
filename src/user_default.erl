@@ -1,9 +1,14 @@
 %%% File    : user_default.erl
 
+
+%% This is the sources for some of these code snippets.
+%% http://erlang.org/pipermail/erlang-questions/2000-February/001010.html
+%% http://www.trapexit.org/forum/viewtopic.php?t=5863&sid=b7000b58ea82c00b4007d8b8a409d2e4
+%%% http://erlang.org/pipermail/erlang-questions/2012-March/064801.html
+
 -module(user_default).
 
 -export([help/0]).
--export([q/0, halt/0]).
 -export([p/1]).
 -export([pid/1,pid/2]).
 
@@ -18,17 +23,9 @@
 %% load
 -export([lm/0, mm/0]).
 
-%% call
--export([cl/3]).
-
 %% doc
 -export([src/3]).
 
-
-%%%
-%%% See:
-%%% http://www.erlang.org/pipermail/erlang-questions/2006-September/022750.html
-%%%
 help() ->
     shell_default:help(),
     io:format(help_text()),
@@ -39,17 +36,10 @@ help_text() ->
         "i()           -- short version of c:i()\n"
         "ni()          -- i/0 on all connected nodes\n"
         "lm()          -- load all changed modules\n"
-        "cl(M,F,A)     -- call unexported function\n"
+        "c(M)          -- call unexported function\n"
         "nl()          -- load all changed modules on all known nodes\n"
         "mm()          -- list modified modules\n"
     .
-
-q()    -> warn_quit_msg().
-halt() -> warn_quit_msg().
-
-warn_quit_msg() ->
-    "Kill the system? Use init:stop() (or C-c C-c for remote node).".
-
 
 p(Term) ->
     io:format("~p\n", [Term]).
@@ -97,13 +87,6 @@ sm() -> user_compile:sm().
 mm() -> user_load:mm().
 
 lm() -> user_load:lm().
-
-%% ---------------------------------------------------------------------------
-%% Call
-
-cl(M,F,A) ->
-    user_call:cl(M,F,A).
-
 
 %% ---------------------------------------------------------------------------
 %% Doc

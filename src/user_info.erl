@@ -3,11 +3,9 @@
 -export([i/0, i/1, ni/0, bt/1]).
 -export([pi/0, pi/1, pi/2, pi2/0]).
 
-
 %% Good ol' i() but includes zooombie support
 i() -> i1(processes()).
 ni() -> i1(all_procs()).
-
 
 i(X) ->
   case user_default:pid(X) of
@@ -192,7 +190,6 @@ do_pi(Print) ->
               end
       end, erlang:ports()).
 
-
 pi(Id) ->
     pi_l(erlang:ports(), Id).
 
@@ -229,9 +226,4 @@ bt(Pid) when is_pid(Pid) ->
             io:format("~s\n", [binary_to_list(Bin)]);
         _ ->
     undefined
-    end;
-bt(Name) when is_atom(Name) ->
-    case whereis(Name) of
-        undefined -> undefined;
-        Pid -> bt(Pid)
     end.
