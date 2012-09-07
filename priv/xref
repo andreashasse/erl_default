@@ -1,21 +1,25 @@
 #!/usr/bin/env escript
 %% -*- erlang -*-
-
+%%! -pa ebin
 -define(HALT_ERROR, 1).
 -define(HALT_OK, 0).
 
 main([]) ->
+    Apps = ["ebin"],
+    code:add_path(Apps),
+    add_deps(),
+    do(Apps).
+
+add_deps() ->
     {ok, RebarConf} = file:consult("rebar.config"),
-    DepsNames =
-        lists:map(fun(T) when is_tuple(T) -> element(1, T);
-                     (A) when is_atom(A) -> A
-                  end,
-                  proplists:get_value(deps, RebarConf, [])),
+    DepsNames = lists:map(fun(T) when is_tuple(T) -> element(1, T);
+                             (A) when is_atom(A) -> A
+                          end,
+                          proplists:get_value(deps, RebarConf, [])),
     DepsDir = proplists:get_value(deps_dir, RebarConf, "deps"),
     lists:foreach(
-      fun(Dep) -> code:add_path(filename:join(DepsDir, Dep)) end,
-      DepsNames),
-    do(["ebin"]).
+      fun(Dep) -> code:add_path(filename:join([DepsDir, Dep, "ebin"])) end,
+      DepsNames).
 
 do(Dirs) ->
     xref:start(?MODULE),
@@ -31,7 +35,6 @@ do(Dirs) ->
     end.
 
 setup(Dirs) ->
-    io:format("Dirs ~p", [Dirs]),
     xref:set_library_path(?MODULE, code:get_path()),
     [xref:add_directory(?MODULE, Dir) || Dir <- Dirs].
 
