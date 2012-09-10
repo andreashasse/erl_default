@@ -24,7 +24,7 @@
 -export([lm/0, mm/0]).
 
 %% doc
--export([src/3]).
+-export([src/1, src/2, src/3,src/4]).
 
 help() ->
     shell_default:help(),
@@ -90,5 +90,7 @@ lm() -> user_load:lm().
 
 %% ---------------------------------------------------------------------------
 %% Doc
-src(M,F,A) ->
-    shell_doc:print_mfa(M,F,A).
+src(M) -> shell_doc:api(M).
+src(M, Fmt) -> shell_doc:api(M,Fmt).
+src(M,F,A) -> shell_doc:print_mfa(M,F,A).
+src(M,F,A,Fmt) -> shell_doc:print_mfa(M,F,A,Fmt).
