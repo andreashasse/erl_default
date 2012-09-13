@@ -18,6 +18,7 @@
 
 %% compile
 -export([c/1, c/2]).
+-export([testc/1, testc/2]).
 -export([sm/0, smc/0]).
 
 %% load
@@ -72,6 +73,10 @@ pid(Str)  when is_list(Str)   -> pid("<"++Str++">").
 
 %% ---------------------------------------------------------------------------
 %% Compile
+
+testc(M) -> testc(M, []).
+
+testc(M, Opts) -> c(M, [{d, 'TEST'}|Opts]).
 
 c(M) -> user_compile:c(M).
 
