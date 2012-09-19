@@ -37,10 +37,12 @@ help_text() ->
         "i()           -- short version of c:i()\n"
         "ni()          -- i/0 on all connected nodes\n"
         "lm()          -- load all changed modules\n"
-        "c(M)          -- call unexported function\n"
+        "c(M)          -- compile module\n"
         "nl()          -- load all changed modules on all known nodes\n"
         "mm()          -- list modified modules\n"
-    .
+        "sm()          -- list modified source files\n"
+        "smc()         -- compile modified source files\n"
+        .
 
 p(Term) ->
     io:format("~p\n", [Term]).
