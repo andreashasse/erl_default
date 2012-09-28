@@ -34,14 +34,14 @@ help() ->
 
 help_text() ->
     "** user extended commands **\n"
-        "i()           -- short version of c:i()\n"
-        "ni()          -- i/0 on all connected nodes\n"
-        "lm()          -- load all changed modules\n"
-        "c(M)          -- compile module\n"
-        "nl()          -- load all changed modules on all known nodes\n"
-        "mm()          -- list modified modules\n"
-        "sm()          -- list modified source files\n"
-        "smc()         -- compile modified source files\n"
+        "i()            -- short version of c:i()\n"
+        "ni()           -- i/0 on all connected nodes\n"
+        "lm()           -- load all changed modules\n"
+        "c(M)           -- compile module\n"
+        "mm()           -- list modified modules\n"
+        "sm()           -- list modified source files\n"
+        "smc()          -- compile modified source files\n"
+        "src(M,F,A,Fmt) -- Print parts of the Module M\n"
         .
 
 p(Term) ->
