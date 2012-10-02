@@ -1,11 +1,25 @@
 -module(user_info).
 
--export([i/0, i/1, ni/0, bt/1]).
+-export([i/0, i/1, ifilter/1, ni/0, bt/1]).
 -export([pi/0, pi/1, pi/2, pi2/0]).
 
 %% Good ol' i() but includes zooombie support
 i() -> i1(processes()).
 ni() -> i1(all_procs()).
+
+ifilter(Filters) ->
+    FilterFuns = lists:map(fun filter_fun/1, Filters),
+    F = fun(Info) -> lists:all(fun(F) -> F(Info) end, FilterFuns) end,
+    i1(processes(), F).
+
+filter_fun({linked_to, Pid0}) ->
+    Pid = user_default:pid(Pid0),
+    fun(Info) -> lists:member(Pid, proplists:get_value(links, Info)) end;
+filter_fun(active) ->
+    fun(Info) -> waiting =/= proplists:get_value(status, Info) end;
+filter_fun({min_msg, No}) ->
+    fun(Info) -> No =< proplists:get_value(message_queue_len, Info) end;
+filter_fun(F) when is_function(F, 1) -> F.
 
 i(X) ->
   case user_default:pid(X) of
@@ -23,9 +37,11 @@ i(X) ->
 %%i(X,Y,Z) -> pinfo(c:pid(X,Y,Z)).
 
 %% Code moified from c.erl
-i1(Ps) ->
+i1(Ps) -> i1(Ps, fun(_) -> true end).
+
+i1(Ps, Filter) ->
     Alive = lists:filter(fun palive/1, Ps),
-    i2(Alive),
+    i2(Alive, Filter),
     case lists:filter(fun pzombie/1, Ps) of
         [] ->
             ok;
@@ -34,12 +50,15 @@ i1(Ps) ->
             %% process that fetched Ps is included among Alive, but has
             %% exited (for ni/0).
             io:format("\nDead processes:\n"),
-            i2(Zombies)
+            i2(Zombies, Filter)
     end.
 
-i2(Ps) ->
+i2(Ps, Filter) ->
     iformat("Pid", "Initial Call", "Current Function", "Reds", "Msgs"),
-    {R,M} = lists:foldl(fun display_info/2, {0,0}, Ps),
+    {{RF,MF},{R,M}} = lists:foldl(
+                        fun(Pid, Acc) -> display_info(Pid, Acc, Filter) end,
+                        {{0,0},{0,0}}, Ps),
+    iformat("Filter", "", "", io_lib:write(RF), io_lib:write(MF)),
     iformat("Total", "", "", io_lib:write(R), io_lib:write(M)).
 
 palive(Pid) ->
@@ -84,21 +103,26 @@ all_procs() ->
         false -> processes()
     end.
 
-display_info(Pid, {R,M}) ->
+display_info(Pid, {{RF,MF}, {R,M}}, Filter) ->
     case pinfo(Pid) of
         [] ->
             {R, M};
         Info ->
-            Call = initial_call(Info),
-            Curr = fetch(current_function, Info),
             Reds = fetch(reductions, Info),
             LM = fetch(message_queue_len, Info),
-            iformat(io_lib:write(Pid),
-                    mfa_string(Call),
-                    mfa_string(Curr),
-                    io_lib:write(Reds),
-                    io_lib:write(LM)),
-            {R+Reds, M+LM}
+            case Filter(Info) of
+                true ->
+                    Call = initial_call(Info),
+                    Curr = fetch(current_function, Info),
+                    iformat(io_lib:write(Pid),
+                            mfa_string(Call),
+                            mfa_string(Curr),
+                            io_lib:write(Reds),
+                            io_lib:write(LM)),
+                    {{RF+Reds, MF+LM},{R+Reds, M+LM}};
+                false ->
+                    {{RF, MF},{R+Reds, M+LM}}
+            end
     end.
 
 %% We can do some assumptions about the initial call.

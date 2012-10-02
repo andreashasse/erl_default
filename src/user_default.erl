@@ -13,7 +13,7 @@
 -export([pid/1,pid/2]).
 
 %% info
--export([i/0, i/1, ni/0, bt/1]).
+-export([i/0, i/1, ni/0, ifilter/1, bt/1]).
 -export([pi/0, pi/1, pi/2, pi2/0]).
 
 %% compile
@@ -34,15 +34,17 @@ help() ->
 
 help_text() ->
     "** user extended commands **\n"
-        "i()            -- short version of c:i()\n"
-        "ni()           -- i/0 on all connected nodes\n"
-        "lm()           -- load all changed modules\n"
-        "c(M)           -- compile module\n"
-        "mm()           -- list modified modules\n"
+        "i()           -- short version of c:i()\n"
+        "ifilter(F)    -- i() with process filters\n"
+        "ni()          -- i/0 on all connected nodes\n"
+        "lm()          -- load all changed modules\n"
+        "c(M)          -- call unexported function\n"
+        "nl()          -- load all changed modules on all known nodes\n"
+        "mm()          -- list modified modules\n"
         "sm()           -- list modified source files\n"
         "smc()          -- compile modified source files\n"
         "src(M,F,A,Fmt) -- Print parts of the Module M\n"
-        .
+    .
 
 p(Term) ->
     io:format("~p\n", [Term]).
@@ -52,6 +54,7 @@ p(Term) ->
 %% Info
 
 i() -> user_info:i().
+ifilter(Filter) -> user_info:ifilter(Filter).
 i(Pid) -> user_info:i(Pid).
 
 ni() -> user_info:ni().
