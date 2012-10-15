@@ -5,8 +5,94 @@
 -define(HALT_OK, 0).
 
 main([]) ->
-    Apps = ["ebin"],
-    code:add_path(Apps),
+    xref(["ebin"]);
+main(["eunit"]) ->
+    xref(["ebin", ".eunit"]);
+main(["components"]) ->
+    Conf = components_conf(),
+    Callgraph = q("E", ["ebin"]),
+    components(Callgraph, Conf).
+
+components_conf() ->
+    {ok, Conf} = file:consult("components.conf"),
+    {proplists:get_value(components, Conf, []),
+     proplists:get_value(ok_calls, Conf, []),
+     proplists:get_value(ignore_mfa, Conf, [])
+    }.
+
+components(Callgraph, {_, OkCalls, IgnoreMfa} = Conf) ->
+    CompCalls =
+        dict:to_list(lists:foldl(fun(E, Acc) -> components(E, Acc, Conf) end,
+                                 dict:new(), Callgraph)),
+    BadCalls0 =
+        lists:map(
+          fun({Comps, Calls}) ->
+                  {Comps, lists:filter(
+                            fun({Calling, Called}) ->
+                                    not ignore_mfa(Calling, IgnoreMfa) andalso
+                                        not ignore_mfa(Called, IgnoreMfa)
+                            end,
+                            Calls)}
+          end,
+          CompCalls),
+    BadCalls = lists:filter(
+                 fun({Comps, _Calls}) -> not lists:member(Comps, OkCalls) end,
+                 BadCalls0),
+    case lists:flatten([element(2, E) || E <- BadCalls]) of
+        [] -> erlang:halt(?HALT_OK);
+        BadMfas ->
+            io:format("Not allowed calls ~n~s", [pp_result(BadMfas)]),
+            erlang:halt(?HALT_ERROR)
+    end.
+
+
+ignore_mfa({_M, _F, _A} = MFA, IgnoreMfa) ->
+    lists:member(MFA, IgnoreMfa).
+
+components({Calling, Called}, Comps, Conf) ->
+    case {find_component(Calling, Conf), find_component(Called, Conf)} of
+        {{true, Same},{true, Same}} ->
+            Comps;
+        {{true, CallingComp},{true, CalledComp}} ->
+            dict:append({CallingComp, CalledComp}, {Calling, Called}, Comps);
+        _ ->
+            Comps
+    end.
+
+find_component({M, _F, _A}, {Components, _, _}) ->
+    Parts = string:tokens(atom_to_list(M), "_"),
+    find_component(Parts, Components, length(Parts)).
+
+find_component(Parts, Components, Depth) when Depth > 0 ->
+    TryComp = list_to_atom(string:join(lists:sublist(Parts, Depth), "_")),
+    case lists:member(TryComp, Components) of
+        true -> {true, TryComp};
+        false -> find_component(Parts, Components, Depth-1)
+    end;
+find_component(_Parts, _Components, 0) ->
+    false.
+
+q(Q, Apps) ->
+    add_deps(),
+    xref:start(?MODULE),
+    xref:set_default(?MODULE, [{warnings, false}]),
+    try
+        setup(Apps),
+        {ok, Res} = xref:q(?MODULE, Q),
+        Res
+    catch E:R ->
+            io:format("Error ~p, Reason ~p~nStack ~p~n",
+                      [E, R, erlang:get_stacktrace()]),
+            erlang:halt(?HALT_ERROR)
+    after
+            xref:stop(?MODULE)
+    end.
+
+%% ---------------------------------------------------------------------------
+%% Regular xref
+
+xref(Apps) ->
+    code:add_paths(Apps),
     add_deps(),
     do(Apps).
 
