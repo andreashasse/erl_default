@@ -109,15 +109,17 @@ add_deps() ->
 
 do(Dirs) ->
     xref:start(?MODULE),
+    xref:set_default(?MODULE, [{warnings, false}]),
     try
         setup(Dirs),
         RC = analyse(),
         erlang:halt(RC)
     catch E:R ->
-            xref:stop(?MODULE),
-            io:format("Error ~p, Reason ~p~nStack ~p",
+            io:format("Error ~p, Reason ~p~nStack ~p~n",
                       [E, R, erlang:get_stacktrace()]),
             erlang:halt(?HALT_ERROR)
+    after
+            xref:stop(?MODULE)
     end.
 
 setup(Dirs) ->
