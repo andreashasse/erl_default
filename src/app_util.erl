@@ -7,7 +7,13 @@
 
 -module(app_util).
 
--export([dev_start/1, dev_start/2]).
+-export([get_env/3, dev_start/1, dev_start/2]).
+
+get_env(App, Value, Default) ->
+    case application:get_env(App, Value) of
+        undefined -> Default;
+        {ok, Val} -> Val
+    end.
 
 dev_start(App) -> dev_start(App, temporary).
 
