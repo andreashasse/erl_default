@@ -7,6 +7,8 @@
 
 -module(app_util).
 
+-ignore_xref([{dev_start,1}]).
+
 -export([get_env/3, dev_start/1, dev_start/2]).
 
 get_env(App, Value, Default) ->
@@ -23,5 +25,6 @@ dev_start(App, Type) ->
             dev_start(DepApp),
             dev_start(App, Type);
         ok -> ok;
-        {error, {already_started, App}} -> ok
+        {error, {already_started, App}} -> ok;
+        {error, Reason} -> {error, Reason}
     end.
