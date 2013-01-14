@@ -22,7 +22,7 @@ dev_start(App) -> dev_start(App, temporary).
 dev_start(App, Type) ->
     case application:start(App, Type) of
         {error, {not_started, DepApp}} ->
-            dev_start(DepApp, Type),
+            ok = dev_start(DepApp, Type),
             dev_start(App, Type);
         ok -> ok;
         {error, {already_started, App}} -> ok;
