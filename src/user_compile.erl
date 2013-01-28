@@ -12,11 +12,29 @@ c(M, Opts) ->
     case shellc(M, Opts) of
         error ->
             try src(M) of
-                S -> shellc(S, Opts ++ [{outdir,filename:dirname(
-                                                  code:which(M))}])
+                S -> shellc(S, Opts ++ include(M) ++
+                                [
+                                 {outdir,filename:dirname(
+                                           code:which(M))}])
             catch error: E -> E
             end;
         O -> O
+    end.
+
+%% Helps with rebarified projects.
+include(M) ->
+    [{i, "/" ++ string:join(P, "/")++"/"} || P <- do_include(M)].
+
+do_include(M) ->
+    Path = string:tokens(filename:dirname(src(M)), "/"),
+    try lists:sublist(Path, length(Path)-2, 3) of
+        ["deps", _, "ebin"] ->
+            [lists:sublist(Path, 1, length(Path)-2)];
+        _ -> [lists:sublist(Path, 1, length(Path)-1),
+              lists:sublist(Path, 1, length(Path)-1) ++ ["deps"]]
+    catch _:_ ->
+            [lists:sublist(Path, 1, length(Path)-1),
+             lists:sublist(Path, 1, length(Path)-1) ++ ["deps"]]
     end.
 
 shellc(M, Opts) ->
