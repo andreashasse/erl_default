@@ -103,10 +103,10 @@ all_procs() ->
         false -> processes()
     end.
 
-display_info(Pid, {{RF,MF}, {R,M}}, Filter) ->
+display_info(Pid, {{RF,MF}, {R,M}} = Acc, Filter) ->
     case pinfo(Pid) of
         [] ->
-            {R, M};
+            Acc;
         Info ->
             Reds = fetch(reductions, Info),
             LM = fetch(message_queue_len, Info),
