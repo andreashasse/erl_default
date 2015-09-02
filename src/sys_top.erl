@@ -4,7 +4,7 @@
                 no_msg :: integer(),
                 io :: atom() | list(),
                 starttime = now() :: erlang:timestamp(),
-                stats = dict:new() :: dict()}).
+                stats = dict:new() :: dict:dict()}).
 
 -export([install/2, install/3]).
 
